@@ -1,4 +1,4 @@
-import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 
 const svg = d3.select("svg");
 const width = +svg.attr("width");
@@ -17,7 +17,7 @@ function project3D(x, y, z) {
   };
 }
 
-d3.csv("ACC.csv", d => ({
+d3.csv("cleaned_data/acc_data.csv", d => ({
   x: +d[0],
   y: +d[1],
   z: +d[2]
