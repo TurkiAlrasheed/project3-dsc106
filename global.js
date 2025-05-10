@@ -10,7 +10,7 @@ const examDurations = {
 };
 
 async function loadData() {
-  const acc = await d3.csv('cleaned_data/acc.csv', d => {
+  const acc = await d3.csv('cleaned_data/final_acc.csv', d => {
       const rawTimestamp = new Date(d.timestamp_trunc);
       const exam = d.Exam;
       const examStart = examStartTimes[exam];
@@ -20,7 +20,7 @@ async function loadData() {
           subject: d.Subject,
           exam,
           minutes: timeElapsed / 1000 / 60,
-          magnitude: +d.magnitude_detrended,
+          magnitude: +d.magnitude_smooth,
       };
   });
   return acc;
@@ -108,10 +108,12 @@ function renderLinePlot(data) {
         .attr("y", 15)
         .text("Movement Intensity");
 
+    // add x-axis
     svg.append('g')
         .attr('transform', `translate(0, ${height - margin.bottom})`)
         .call(xAxis);
 
+    // add y-axis
     svg.append('g')
         .attr('transform', `translate(${margin.left}, 0)`)
         .call(yAxis);
@@ -120,12 +122,28 @@ function renderLinePlot(data) {
         .x(d => xScale(d.minutes))
         .y(d => yScale(d.magnitude));
 
-    svg.append('path')
+    const path = svg.append('path')
         .datum(data)
         .attr('fill', 'none')
         .attr('stroke', 'steelblue')
         .attr('stroke-width', 2)
         .attr('d', line);
+
+    const totalLength = path.node().getTotalLength();
+
+    // Reset path
+    path.attr("stroke-dasharray", `${totalLength} ${totalLength}`)
+        .attr("stroke-dashoffset", totalLength);
+
+    // Button handler
+    d3.select('#play-button').on('click', () => {
+        path.attr('stroke-dashoffset', totalLength)
+            .transition()
+            .duration(3000) // total animation duration in ms
+            .ease(d3.easeLinear)
+            .attr("stroke-dashoffset", 0);
+    });
+
     // === Tooltip setup ===
     const tooltip = d3.select('#chart')
     .append('div')
