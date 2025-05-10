@@ -3,6 +3,11 @@ const examStartTimes = {
   'Midterm 2': new Date("2018-11-10T09:00:00-08:00"),
   'Final': new Date("2018-12-05T10:28:54-08:00")
 };
+const examDurations = {
+  'Midterm 1': 90,
+  'Midterm 2': 90,
+  'Final': 180  // or whatever duration you want for the Final
+};
 
 async function loadData() {
   const acc = await d3.csv('cleaned_data/acc.csv', d => {
@@ -52,7 +57,12 @@ function updateChart(data) {
   console.log('Filtered data:', filtered);
 
   d3.select('#chart').selectAll('*').remove();
-  renderLinePlot(filtered);
+  const maxMinutes = examDurations[selectedExam] || Infinity;
+
+const trimmed = filtered.filter(d => d.minutes <= maxMinutes);
+
+  renderLinePlot(trimmed);
+  //renderLinePlot(filtered);
 }
 
 function renderLinePlot(data) {
@@ -116,6 +126,63 @@ function renderLinePlot(data) {
         .attr('stroke', 'steelblue')
         .attr('stroke-width', 2)
         .attr('d', line);
+    // === Tooltip setup ===
+    const tooltip = d3.select('#chart')
+    .append('div')
+    .attr('class', 'tooltip')
+    .style('position', 'absolute')
+    .style('background', 'rgba(255, 255, 255, 0.95)')
+    .style('border', '1px solid #ccc')
+    .style('padding', '8px 12px')
+    .style('border-radius', '8px')
+    .style('box-shadow', '0 2px 5px rgba(0, 0, 0, 0.1)')
+    .style('pointer-events', 'none')
+    .style('font-size', '12px')
+    .style('color', '#333')
+    .style('display', 'none');
+
+    const focus = svg.append('circle')
+    .attr('r', 3.5)
+    .attr('fill', '#007acc')
+    .attr('stroke', 'white')
+    .attr('stroke-width', 1.5)
+    .style('display', 'none');
+
+    // === Mouse overlay ===
+    svg.append('rect')
+        .attr('width', width)
+        .attr('height', height)
+        .attr('fill', 'none')
+        .attr('pointer-events', 'all')
+        .on('mousemove', function (event) {
+            const [mx] = d3.pointer(event);
+            const minute = xScale.invert(mx);
+            
+
+            // Find the closest data point
+            const bisect = d3.bisector(d => d.minutes).left;
+            const index = bisect(data, minute);
+            const d0 = data[Math.max(0, index - 1)];
+            const d1 = data[Math.min(index, data.length - 1)];
+            const d = (minute - d0.minutes) < (d1.minutes - minute) ? d0 : d1;
+
+            // Update circle
+            focus
+                .attr('cx', xScale(d.minutes))
+                .attr('cy', yScale(d.magnitude))
+                .style('display', null);
+
+            // Update tooltip
+            tooltip
+    .style('left', `${xScale(d.minutes) + 10}px`)
+    .style('top', `${yScale(d.magnitude) - 5}px`)
+                .html(`Time: ${d.minutes.toFixed(1)} min<br>Magnitude: ${d.magnitude.toFixed(2)}`)
+                .style('display', 'block');
+        })
+        .on('mouseout', function () {
+            tooltip.style('display', 'none');
+            focus.style('display', 'none');
+        });
 }
 
 loadData().then(data => {
