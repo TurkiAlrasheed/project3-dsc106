@@ -3,29 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <title>D3 Accelerometer Visualization</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 1.5rem;
-    }
 
-    svg {
-      border: 1px solid #ccc;
-    }
-
-    #slider {
-      margin-top: 1rem;
-      width: 600px;
-    }
-  </style>
 </head>
 <body>
 
   <h2>Accelerometer 3D Scatter Plot (Projected in 2D)</h2>
   <div id="chart"></div>
-  <input type="range" id="slider" min="0" value="0">
+  <label for="exam-select">Select Exam:</label>
+<select id="exam-select"></select>
 
-  <!-- D3.js -->
+<label for="subject-select">Select Subject:</label>
+<select id="subject-select"></select>
+
+<div id="chart"></div>
+
   <script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
   <script src="global.js"></script>
 
