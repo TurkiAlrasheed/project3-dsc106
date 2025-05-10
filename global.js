@@ -1,64 +1,95 @@
-import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-const svg = d3.select("svg");
-const width = +svg.attr("width");
-const height = +svg.attr("height");
+// import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
+
 const slider = d3.select("#slider");
 
 const sampleRate = 32;  // Hz
-const startTime = new Date("2018-12-05T09:00:00-06:00");  // Set exam start time
 
-// Project 3D to 2D (fake isometric)
-function project3D(x, y, z) {
-  const scale = 4;
-  return {
-    x: width / 2 + scale * (x - z * 0.5),
-    y: height / 2 - scale * (y - z * 0.5)
-  };
+const examStartTimes = {
+    'Midterm 1': new Date("2018-10-13T09:00:00-07:00"),
+    'Midterm 2': new Date("2018-11-10T09:00:00-07:00"),
+    'Final': new Date("2018-12-05T10:28:54-07:00")
+};
+
+
+async function loadData() {
+    const acc = await d3.csv('cleaned_data/acc.csv', d => {
+        const rawTimestamp = new Date(d.timestamp_trunc);
+        const exam = d.Exam;
+        const examStart = examStartTimes[exam];
+        const timeElapsed = rawTimestamp - examStart; // in ms
+        return {
+            subject: d.Subject,
+            exam,
+            minutes: timeElapsed / 1000 / 60,
+            magnitude: Number(d.magnitude_detrended),
+        }
+    });
+    console.log(acc);
+    return acc;
 }
 
-// Load CSV
-d3.csv("cleaned_data/acc_data.csv", d => ({
-  x: +d[0],
-  y: +d[1],
-  z: +d[2]
-})).then(data => {
-  if (!data || data.length === 0) {
-    console.error("CSV is empty or failed to parse.");
-    return;
-  }
+function renderLinePlot(data) {
+    const width = 800;
+    const height = 600;
+    const svg = d3.select('#chart').append('svg')
+        //.attr('viewBox', `0 0 ${width} ${height}`)
+        .attr('width', width)
+        .attr('height', height)
+        .style('overflow', 'visible'); 
 
-  // Assign timestamps
-  data.forEach((d, i) => {
-    d.time = new Date(startTime.getTime() + i * 1000 / sampleRate);
-  });
+    const margin = { top: 10, right: 10, bottom: 30, left: 20 };
+    const usableArea = {
+        top: margin.top,
+        right: width - margin.right,
+        bottom: height - margin.bottom,
+        left: margin.left,
+        width: width - margin.left - margin.right,
+        height: height - margin.top - margin.bottom,
+    };
 
-  // Group into 1-second frames
-  const frames = d3.groups(data, d => d.time.toISOString().slice(0, 19));
-  slider.attr("max", frames.length - 1);
+    const xScale = d3.scaleLinear()
+        .domain(d3.extent(data, d => d.minutes))
+        .range([usableArea.left, usableArea.right]);
 
-  function renderFrame(i) {
-    const [, points] = frames[i];
+    const yScale = d3.scaleLinear()
+        .domain(d3.extent(data, d => d.magnitude))
+        .range([usableArea.bottom, usableArea.top]);
 
-    const dots = svg.selectAll("circle")
-      .data(points, (_, j) => j);
+    const xAxis = d3.axisBottom(xScale);
+    const yAxis = d3.axisLeft(yScale);
 
-    dots.enter()
-      .append("circle")
-      .attr("r", 2)
-      .attr("fill", "steelblue")
-      .merge(dots)
-      .attr("cx", d => project3D(d.x, d.y, d.z).x)
-      .attr("cy", d => project3D(d.x, d.y, d.z).y);
+    // add x axis
+    svg.append('g')
+        .attr('transform', `translate(0, ${usableArea.bottom})`)
+        .call(xAxis);
 
-    dots.exit().remove();
-  }
+    // add y axis
+    svg.append('g')
+        .attr('transform', `translate(${usableArea.left}, 0)`)
+        .call(yAxis);
 
-  // Initial draw
-  renderFrame(0);
+    const grouped = d3.groups(data, d => d.exam, d => d.subject);
 
-  // Slider interaction
-  slider.on("input", () => {
-    const i = +slider.property("value");
-    renderFrame(i);
-  });
-});
+    const color = d3.scaleOrdinal()
+        .domain(grouped.flatMap(([exam, subs]) => subs.map(([subject]) => `${exam}-${subject}`)))
+        .range(d3.schemeCategory10);
+
+    const line = d3.line()
+        .x(d => xScale(d.minutes))
+        .y(d => yScale(d.magnitude));
+
+    grouped.forEach(([exam, subjectGroups]) => {
+        subjectGroups.forEach(([subject, values]) => {
+            svg.append('path')
+                .datum(values)
+                .attr('fill', 'none')
+                .attr('stroke', color(`${exam}-${subject}`))
+                .attr('stroke-width', 1.5)
+                .attr('d', line)
+                .append('title')
+                .text(`${exam} - ${subject}`);
+        });
+    });
+}
+
+loadData().then(renderLinePlot);
