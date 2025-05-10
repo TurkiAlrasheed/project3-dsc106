@@ -2,24 +2,230 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>D3 Accelerometer Visualization</title>
+  <title>Hand Movement Acceleration</title>
+  <style>/* 1) Reset & base */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "Inter", sans-serif;
+      background: #f5f7fa;
+      color: #1a202c;
+      line-height: 1.6;
+    }
 
+    /* 2) Header & nav */
+    .site-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2rem;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .logo {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+    }
+    .nav-links a {
+      text-decoration: none;
+      color: #1a202c;
+      font-weight: 500;
+    }
+    .nav-button {
+      padding: 0.5rem 1rem;
+      border: 2px solid #3182ce;
+      border-radius: 9999px;
+      background: #fff;
+      color: #3182ce;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .nav-button:hover {
+      background: #3182ce;
+      color: #fff;
+    }
+
+    /* 3) Main title */
+    main {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    main h1 {
+      font-size: 2rem;
+      margin-bottom: 1.5rem;
+      font-weight: 700;
+    }
+
+    /* 4) Card layout */
+    .card {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 2rem;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* 5) Chart area */
+    .chart-area {
+      position: relative;
+    }
+    .selectors {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      color: #4a5568;
+    }
+    .selectors label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .selectors select {
+      padding: 0.25rem 0.5rem;
+      border: 1px solid #cbd5e0;
+      border-radius: 0.375rem;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    /* 6) Play button + slider */
+    .controls {
+      display: flex;
+      align-items: center;
+      margin-top: 1.5rem;
+    }
+    .play-button {
+      width: 3rem;
+      height: 3rem;
+      background: #3182ce;
+      border: none;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 1.25rem;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    .range-slider {
+      -webkit-appearance: none;
+      flex: 1;
+      margin: 0 1rem;
+      height: 0.5rem;
+      background: #e2e8f0;
+      border-radius: 9999px;
+      outline: none;
+    }
+    .range-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 1.5rem;
+      height: 1.5rem;
+      background: #fff;
+      border: 2px solid #3182ce;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-top: -0.5rem;
+    }
+    .range-slider::-moz-range-thumb {
+      width: 1.5rem;
+      height: 1.5rem;
+      background: #fff;
+      border: 2px solid #3182ce;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .time-label {
+      min-width: 3rem;
+      text-align: right;
+      font-size: 0.875rem;
+      color: #4a5568;
+    }
+
+    /* 7) Analysis text */
+    .analysis h2 {
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+    .analysis p {
+      margin-bottom: 1rem;
+    }
+  </style>
 </head>
+
 <body>
 
-  <h2>Accelerometer 3D Scatter Plot (Projected in 2D)</h2>
-  <div id="chart"></div>
-  <label for="exam-select">Select Exam:</label>
-  <select id="exam-select"></select>
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="logo">Logo</div>
+    <nav class="nav-links">
+      <a href="#">Home</a>
+      <a href="#">About</a>
+      <a href="#">Contact</a>
+    </nav>
+    <button class="nav-button">Analysis Page</button>
+  </header>
 
-  <label for="subject-select">Select Subject:</label>
-  <select id="subject-select"></select>
-  <button id="play-button">Play</button>
+  <!-- MAIN CONTENT -->
+  <main>
+    <h1>Hand Movement Acceleration<br/>Changes During an Exam</h1>
 
-  <div id="chart"></div>
+    <section class="card">
+      <!-- LEFT COLUMN: Chart + Controls -->
+      <div class="chart-area">
+        <div class="selectors">
+          <label for="exam-select">Exam:
+            <select id="exam-select"></select>
+          </label>
+          <label for="subject-select">Subject:
+            <select id="subject-select"></select>
+          </label>
+        </div>
 
+        <!-- this is where your D3 code will inject the SVG -->
+        <div id="chart"></div>
+
+        <div class="controls">
+          <button id="play-button" class="play-button">▶</button>
+          <input
+            type="range"
+            id="time-slider"
+            class="range-slider"
+            min="0"
+            max="180"
+            step="1"
+          />
+          <span id="time-label" class="time-label">0:00</span>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: Analysis Text -->
+      <aside class="analysis">
+        <h2>Data Analysis</h2>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      </aside>
+    </section>
+  </main>
+
+  <!-- SCRIPTS: D3 + Your Chart Logic -->
   <script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
   <script src="global.js"></script>
-
 </body>
 </html>
