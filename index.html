@@ -2,23 +2,32 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>3D Accelerometer (Fake 3D) in D3</title>
+  <title>D3 Accelerometer Visualization</title>
   <style>
     body {
       font-family: sans-serif;
-      margin: 2rem;
+      padding: 1.5rem;
     }
+
+    svg {
+      border: 1px solid #ccc;
+    }
+
     #slider {
-      width: 500px;
+      margin-top: 1rem;
+      width: 600px;
     }
   </style>
 </head>
 <body>
 
-  <h1>Accelerometer 3D Plot (D3 Projection)</h1>
-  <input type="range" id="slider" min="0" step="1">
+  <h2>Accelerometer 3D Scatter Plot (Projected in 2D)</h2>
   <svg width="800" height="600"></svg>
+  <input type="range" id="slider" min="0" value="0">
 
-  <script type="module" src="global.js"></script>
+  <!-- D3.js -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
+  <script src="global.js"></script>
+
 </body>
 </html>

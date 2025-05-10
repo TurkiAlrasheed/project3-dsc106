@@ -1,14 +1,13 @@
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
-
 const svg = d3.select("svg");
 const width = +svg.attr("width");
 const height = +svg.attr("height");
 const slider = d3.select("#slider");
 
-const sampleRate = 32; // Hz
-const examStartTime = new Date("2018-12-05T09:00:00-06:00"); // Adjust if needed
+const sampleRate = 32;  // Hz
+const startTime = new Date("2018-12-05T09:00:00-06:00");  // Set exam start time
 
-// 3D projection function (fake isometric)
+// Project 3D to 2D (fake isometric)
 function project3D(x, y, z) {
   const scale = 4;
   return {
@@ -17,44 +16,47 @@ function project3D(x, y, z) {
   };
 }
 
+// Load CSV
 d3.csv("cleaned_data/acc_data.csv", d => ({
   x: +d[0],
   y: +d[1],
   z: +d[2]
 })).then(data => {
-  if (data.length === 0) {
-    console.error("No data loaded.");
+  if (!data || data.length === 0) {
+    console.error("CSV is empty or failed to parse.");
     return;
   }
 
-  // Add time to each point
+  // Assign timestamps
   data.forEach((d, i) => {
-    d.time = new Date(examStartTime.getTime() + i * 1000 / sampleRate);
+    d.time = new Date(startTime.getTime() + i * 1000 / sampleRate);
   });
 
-  // Group data by second (1 frame per second)
+  // Group into 1-second frames
   const frames = d3.groups(data, d => d.time.toISOString().slice(0, 19));
   slider.attr("max", frames.length - 1);
 
-  function renderFrame(frameIndex) {
-    const [t, points] = frames[frameIndex];
+  function renderFrame(i) {
+    const [, points] = frames[i];
 
-    const circles = svg.selectAll("circle")
-      .data(points, (_, i) => i);
+    const dots = svg.selectAll("circle")
+      .data(points, (_, j) => j);
 
-    circles.enter()
+    dots.enter()
       .append("circle")
       .attr("r", 2)
       .attr("fill", "steelblue")
-      .merge(circles)
+      .merge(dots)
       .attr("cx", d => project3D(d.x, d.y, d.z).x)
       .attr("cy", d => project3D(d.x, d.y, d.z).y);
 
-    circles.exit().remove();
+    dots.exit().remove();
   }
 
-  renderFrame(0); // Draw first frame
+  // Initial draw
+  renderFrame(0);
 
+  // Slider interaction
   slider.on("input", () => {
     const i = +slider.property("value");
     renderFrame(i);
