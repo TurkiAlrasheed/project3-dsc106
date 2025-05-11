@@ -5,7 +5,7 @@ let isPlaying = false;
 const examStartTimes = {
   'Midterm 1': new Date("2018-10-13T09:00:00-07:00"),
   'Midterm 2': new Date("2018-11-10T09:00:00-08:00"),
-  'Final': new Date("2018-12-05T10:28:54-08:00")
+  'Final': null//new Date("2018-12-05T10:28:54-08:00")
 };
 const examDurations = {
   'Midterm 1': 90,
@@ -13,9 +13,37 @@ const examDurations = {
   'Final': 180
 };
 
-async function loadData() {
+async function loadACC() {
   const acc = await d3.csv('cleaned_data/final_acc.csv', d => {
     const rawTimestamp = new Date(d.timestamp_trunc);
+    const exam = d.Exam;
+
+    let examStart;
+    if (exam === "Final") {
+      examStart = new Date(rawTimestamp);
+      examStart.setHours(11, 0, 0, 0); // force start at 11:00 AM
+    } else {
+      examStart = examStartTimes[exam];
+    }
+
+    const timeElapsed = rawTimestamp - examStart;
+    const minutes = timeElapsed / 1000 / 60;
+
+    if (exam === "Final" && minutes < 0) return null;
+
+    return {
+      subject: d.Subject,
+      exam,
+      minutes,
+      magnitude: +d.magnitude_smooth,
+    };
+  });
+  return acc.filter(d => d !== null);
+}
+
+async function loadFidgets() {
+  const fidgets = await d3.csv('cleaned_data/fidgets.csv', d => {
+    const rawTimestamp = new Date(d.start_time);
     const exam = d.Exam;
     const examStart = examStartTimes[exam];
     const timeElapsed = rawTimestamp - examStart;
@@ -24,10 +52,10 @@ async function loadData() {
       subject: d.Subject,
       exam,
       minutes: timeElapsed / 1000 / 60,
-      magnitude: +d.magnitude_smooth,
+      value: +d.smoothed_value,
     };
   });
-  return acc;
+  return fidgets;
 }
 
 function setupDropdowns(data) {
@@ -38,21 +66,31 @@ function setupDropdowns(data) {
   const subjectSelect = d3.select('#subject-select');
 
   examSelect.selectAll('option')
-    .data(exams).enter().append('option')
-    .attr('value', d => d).text(d => d);
+    .data(exams)
+    .enter()
+    .append('option')
+    .attr('value', d => d)
+    .text(d => d);
 
   subjectSelect.selectAll('option')
-    .data(subjects).enter().append('option')
-    .attr('value', d => d).text(d => d);
+    .data(subjects)
+    .enter()
+    .append('option')
+    .attr('value', d => d)
+    .text(d => d);
 }
 
-function updateChart(data) {
+function updateChart(data, fidgets) {
   const selectedExam = d3.select('#exam-select').property('value');
   const selectedSubject = d3.select('#subject-select').property('value');
 
-  const filtered = data.filter(d => d.exam === selectedExam && d.subject === selectedSubject);
+  const filteredData = data.filter(d => d.exam === selectedExam && d.subject === selectedSubject);
+  const filteredFidgets = fidgets.filter(d => d.exam === selectedExam && d.subject === selectedSubject);
+
+  d3.select('#chart').selectAll('*').remove();
   const maxMinutes = examDurations[selectedExam] || Infinity;
-  const trimmed = filtered.filter(d => d.minutes <= maxMinutes);
+  const trimmedAcc = filteredData.filter(d => d.minutes <= maxMinutes);
+  const trimmedFidgets = filteredFidgets.filter(d => d.minutes <= maxMinutes);
 
   // Stop animation and reset
   if (animationInterval) {
@@ -66,8 +104,9 @@ function updateChart(data) {
   d3.select('#time-label').text('0:00');
   d3.select('#chart').selectAll('*').remove();
 
-  renderLinePlot(trimmed);
+  renderLinePlot(trimmedAcc, trimmedFidgets);
 }
+
 function formatTimeLabel(minutes) {
   const totalSeconds = Math.round(minutes * 60);  // round to closest second
   const h = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
@@ -76,35 +115,65 @@ function formatTimeLabel(minutes) {
   return `${h}:${m}:${s}`;
 }
 
-function renderLinePlot(data) {
-  const width = 800, height = 400, margin = { top: 10, right: 10, bottom: 50, left: 50 };
-  const svg = d3.select('#chart').append('svg').attr('width', width).attr('height', height);
+function renderLinePlot(data, fidgets) {
+  const width = 800;
+  const height = 400;
+  const margin = { top: 10, right: 10, bottom: 50, left: 50 };
+  const usableArea = {
+    top: margin.top,
+    right: width - margin.right,
+    bottom: height - margin.bottom,
+    left: margin.left,
+    width: width - margin.left - margin.right,
+    height: height - margin.top - margin.bottom,
+  };
 
-  const xScale = d3.scaleLinear().domain(d3.extent(data, d => d.minutes)).range([margin.left, width - margin.right]);
-  const yScale = d3.scaleLinear().domain(d3.extent(data, d => d.magnitude)).range([height - margin.bottom, margin.top]);
+  const svg = d3.select('#chart').append('svg')
+    .attr('width', width)
+    .attr('height', height);
 
-  svg.append('g').attr('transform', `translate(0, ${height - margin.bottom})`).call(d3.axisBottom(xScale));
-  svg.append('g').attr('transform', `translate(${margin.left}, 0)`).call(d3.axisLeft(yScale));
+  const xScale = d3.scaleLinear()
+    .domain(d3.extent(data, d => d.minutes))
+    .range([margin.left, width - margin.right]);
 
+  const yScale = d3.scaleLinear()
+    .domain(d3.extent(data, d => d.magnitude))
+    .range([height - margin.bottom, margin.top]);
+
+  const xAxis = d3.axisBottom(xScale);
+  const yAxis = d3.axisLeft(yScale);
+
+  // add x-axis title
   svg.append("text")
     .attr("text-anchor", "middle")
-    .attr("x", margin.left + (width - margin.left - margin.right) / 2)
+    .attr("x", usableArea.left + usableArea.width / 2)
     .attr("y", height - 10)
     .text("Minutes Elapsed");
 
+  // add y-axis title
   svg.append("text")
     .attr("text-anchor", "middle")
     .attr("transform", `rotate(-90)`)
-    .attr("x", -height / 2)
+    .attr("x", - (usableArea.top + usableArea.height / 2))
     .attr("y", 15)
     .text("Movement Intensity");
+
+  // add x-axis
+  svg.append('g')
+    .attr('transform', `translate(0, ${height - margin.bottom})`)
+    .call(xAxis);
+
+  // add y-axis
+  svg.append('g')
+    .attr('transform', `translate(${margin.left}, 0)`)
+    .call(yAxis);
 
   const fullLine = d3.line().x(d => xScale(d.minutes)).y(d => yScale(d.magnitude));
 
   svg.append('path')
     .datum(data)
     .attr('fill', 'none')
-    .attr('stroke', '#ccc')
+    .attr('stroke', '#ccc') // light gray
     .attr('stroke-width', 2)
     .attr('d', fullLine);
 
@@ -112,63 +181,77 @@ function renderLinePlot(data) {
     .attr('fill', 'none')
     .attr('stroke', 'steelblue')
     .attr('stroke-width', 2);
+
+  const dots = svg.selectAll('.fidget-dot')
+    .data(fidgets)
+    .enter()
+    .append('circle')
+    .attr('class', 'fidget-dot')
+    .attr('cx', d => xScale(d.minutes))
+    .attr('cy', d => yScale(d.value))
+    .attr('r', 4)
+    .attr('fill', 'red')
+    .attr('stroke', 'white')
+    .attr('stroke-width', 1.5)
+    .style('opacity', 0);
+
+
   // === Tooltip setup ===
   const tooltip = d3.select('#chart')
-  .append('div')
-  .attr('class', 'tooltip')
-  .style('position', 'absolute')
-  .style('background', 'rgba(255, 255, 255, 0.95)')
-  .style('border', '1px solid #ccc')
-  .style('padding', '8px 12px')
-  .style('border-radius', '8px')
-  .style('box-shadow', '0 2px 5px rgba(0, 0, 0, 0.1)')
-  .style('pointer-events', 'none')
-  .style('font-size', '12px')
-  .style('color', '#333')
-  .style('display', 'none');
+    .append('div')
+    .attr('class', 'tooltip')
+    .style('position', 'absolute')
+    .style('background', 'rgba(255, 255, 255, 0.95)')
+    .style('border', '1px solid #ccc')
+    .style('padding', '8px 12px')
+    .style('border-radius', '8px')
+    .style('box-shadow', '0 2px 5px rgba(0, 0, 0, 0.1)')
+    .style('pointer-events', 'none')
+    .style('font-size', '12px')
+    .style('color', '#333')
+    .style('display', 'none');
 
   const focus = svg.append('circle')
-  .attr('r', 3.5)
-  .attr('fill', '#007acc')
-  .attr('stroke', 'white')
-  .attr('stroke-width', 1.5)
-  .style('display', 'none');
+    .attr('r', 3.5)
+    .attr('fill', '#007acc')
+    .attr('stroke', 'white')
+    .attr('stroke-width', 1.5)
+    .style('display', 'none');
 
   // === Mouse overlay ===
   svg.append('rect')
-      .attr('width', width)
-      .attr('height', height)
-      .attr('fill', 'none')
-      .attr('pointer-events', 'all')
-      .on('mousemove', function (event) {
-          const [mx] = d3.pointer(event);
-          const minute = xScale.invert(mx);
-          
+    .attr('width', width)
+    .attr('height', height)
+    .attr('fill', 'none')
+    .attr('pointer-events', 'all')
+    .on('mousemove', function (event) {
+      const [mx] = d3.pointer(event);
+      const minute = xScale.invert(mx);
 
-          // Find the closest data point
-          const bisect = d3.bisector(d => d.minutes).left;
-          const index = bisect(data, minute);
-          const d0 = data[Math.max(0, index - 1)];
-          const d1 = data[Math.min(index, data.length - 1)];
-          const d = (minute - d0.minutes) < (d1.minutes - minute) ? d0 : d1;
+      // Find the closest data point
+      const bisect = d3.bisector(d => d.minutes).left;
+      const index = bisect(data, minute);
+      const d0 = data[Math.max(0, index - 1)];
+      const d1 = data[Math.min(index, data.length - 1)];
+      const d = (minute - d0.minutes) < (d1.minutes - minute) ? d0 : d1;
 
-          // Update circle
-          focus
-              .attr('cx', xScale(d.minutes))
-              .attr('cy', yScale(d.magnitude))
-              .style('display', null);
+      // Update circle
+      focus
+          .attr('cx', xScale(d.minutes))
+          .attr('cy', yScale(d.magnitude))
+          .style('display', null);
 
-          // Update tooltip
-          tooltip
-  .style('left', `${xScale(d.minutes) + 10}px`)
-  .style('top', `${yScale(d.magnitude) - 5}px`)
-              .html(`Time: ${d.minutes.toFixed(1)} min<br>Magnitude: ${d.magnitude.toFixed(2)}`)
-              .style('display', 'block');
-      })
-      .on('mouseout', function () {
-          tooltip.style('display', 'none');
-          focus.style('display', 'none');
-      });
+      // Update tooltip
+      tooltip.style('left', `${xScale(d.minutes) + 10}px`)
+        .style('top', `${yScale(d.magnitude) - 5}px`)
+        .html(`Time: ${d.minutes.toFixed(1)} min<br>Magnitude: ${d.magnitude.toFixed(2)}`)
+        .style('display', 'block');
+    })
+    .on('mouseout', function () {
+      tooltip.style('display', 'none');
+      focus.style('display', 'none');
+    });
+      
   const slider = d3.select('#time-slider');
   const timeDisplay = d3.select('#time-label');
   const playButton = d3.select('#play-button');
@@ -204,6 +287,17 @@ function renderLinePlot(data) {
     playButton.text(isPlaying ? '⏸' : '▶');
 
     if (isPlaying) {
+      const animationLength = 3000;
+      dots.style('opacity', 0); // reset
+      dots.each(function (d, i) {
+        const delay = (d.minutes / maxTime) * animationLength;
+        d3.select(this)
+          .transition()
+          .duration(500)
+          .delay(delay)
+          .style('opacity', 1);
+      });
+
       animationInterval = setInterval(() => {
         if (currentTime >= maxTime) {
           clearInterval(animationInterval);
@@ -211,7 +305,7 @@ function renderLinePlot(data) {
           playButton.text('▶');
           return;
         }
-        currentTime += 0.6; 
+        currentTime += 0.8; 
         updateVisiblePath(currentTime);
       }, 100);
     } else {
@@ -223,9 +317,13 @@ function renderLinePlot(data) {
   updateVisiblePath(0);
 }
 
-loadData().then(data => {
-  setupDropdowns(data);
-  updateChart(data);
-  d3.select('#exam-select').on('change', () => updateChart(data));
-  d3.select('#subject-select').on('change', () => updateChart(data));
+loadACC().then(data => {
+  loadFidgets().then(fidgets => {
+    setupDropdowns(data);
+    updateChart(data, fidgets);
+
+    // Attach change handlers
+    d3.select('#exam-select').on('change', () => updateChart(data, fidgets));
+    d3.select('#subject-select').on('change', () => updateChart(data, fidgets));
+  });
 });
