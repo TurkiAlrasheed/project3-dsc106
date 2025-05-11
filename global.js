@@ -320,25 +320,26 @@ function renderLinePlot(data, fidgets) {
       });
   
       const resumeStartTime = performance.now();
-      const resumeFromTime = currentTime;
-  
-      if (animationInterval) animationInterval.stop();
-      animationInterval = d3.timer(function () {
-        const elapsed = performance.now() - resumeStartTime;
-        let t = elapsed / animationLength;
-        currentTime = resumeFromTime + t * (maxTime - resumeFromTime);
-  
-        if (currentTime >= maxTime) {
-          currentTime = maxTime;
-          updateVisiblePath(currentTime, fidgets);
-          animationInterval.stop();
-          isPlaying = false;
-          playButton.text('▶');
-          return;
-        }
-  
-        updateVisiblePath(currentTime, fidgets);
-      });
+const resumeFromTime = currentTime;
+const remainingDuration = animationLength * ((maxTime - resumeFromTime) / maxTime);
+
+if (animationInterval) animationInterval.stop();
+animationInterval = d3.timer(function () {
+  const elapsed = performance.now() - resumeStartTime;
+  let t = elapsed / remainingDuration;
+  currentTime = resumeFromTime + t * (maxTime - resumeFromTime);
+
+  if (currentTime >= maxTime) {
+    currentTime = maxTime;
+    updateVisiblePath(currentTime, fidgets);
+    animationInterval.stop();
+    isPlaying = false;
+    playButton.text('▶');
+    return;
+  }
+
+  updateVisiblePath(currentTime, fidgets);
+});
     } else {
       if (animationInterval) animationInterval.stop();
       dots.interrupt();
