@@ -45,13 +45,24 @@ async function loadFidgets() {
   const fidgets = await d3.csv('cleaned_data/fidgets.csv', d => {
     const rawTimestamp = new Date(d.start_time);
     const exam = d.Exam;
-    const examStart = examStartTimes[exam];
+
+    let examStart;
+    if (exam === "Final") {
+      examStart = new Date(rawTimestamp);
+      examStart.setHours(11, 0, 0, 0); // force start at 11:00 AM
+    } else {
+      examStart = examStartTimes[exam];
+    }
+
     const timeElapsed = rawTimestamp - examStart;
+    const minutes = timeElapsed / 1000 / 60;
+
+    if (exam === "Final" && minutes < 0) return null;
 
     return {
       subject: d.Subject,
       exam,
-      minutes: timeElapsed / 1000 / 60,
+      minutes,
       value: +d.smoothed_value,
     };
   });
@@ -270,7 +281,7 @@ function renderLinePlot(data, fidgets) {
   
     // Show fidgets that occurred up to current time
     dots
-      .style('opacity', d => d.minutes <= currentTime ? 1 : 0);
+      .style('opacity', d => d.minutes <= currentTime ? .8 : 0);
   }
 
   slider.on('input', function () {
@@ -304,7 +315,7 @@ function renderLinePlot(data, fidgets) {
           .transition()
           .duration(500)
           .delay(delay)
-          .style('opacity', 1);
+          .style('opacity', .8);
       });
     
       let start = null;
