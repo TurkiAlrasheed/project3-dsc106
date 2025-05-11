@@ -94,7 +94,7 @@ function updateChart(data, fidgets) {
 
   // Stop animation and reset
   if (animationInterval) {
-    clearInterval(animationInterval);
+    animationInterval.stop();
     animationInterval = null;
   }
   isPlaying = false;
@@ -308,8 +308,9 @@ function renderLinePlot(data, fidgets) {
       });
     
       let start = null;
-      animationInterval = d3.timer(function (elapsed) {
-        if (!start) start = elapsed;
+    animationInterval = d3.timer(function (elapsed) {
+    if (start === null) start = elapsed;
+
     
         let t = (elapsed - start) / animationLength;
         if (t > 1) {
@@ -323,7 +324,8 @@ function renderLinePlot(data, fidgets) {
         updateVisiblePath(currentTime);
       });
     } else {
-      clearInterval(animationInterval);
+      if (animationInterval) animationInterval.stop();  // Stop timer
+      dots.interrupt();  // 🛑 Stop fidget dot animations
     }
   }
 
