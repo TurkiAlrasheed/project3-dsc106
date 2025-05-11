@@ -261,11 +261,15 @@ function renderLinePlot(data, fidgets) {
   function updateVisiblePath(currentTime) {
     timeDisplay.text(formatTimeLabel(currentTime));
     slider.property('value', currentTime);
-
+  
     const visibleData = data.filter(d => d.minutes <= currentTime);
     if (visibleData.length >= 2) {
       foregroundPath.datum(visibleData).attr('d', fullLine);
     }
+  
+    // Show fidgets that occurred up to current time
+    dots
+      .style('opacity', d => d.minutes <= currentTime ? 1 : 0);
   }
 
   slider.on('input', function () {
@@ -288,15 +292,7 @@ function renderLinePlot(data, fidgets) {
 
     if (isPlaying) {
       const animationLength = 3000;
-      dots.style('opacity', 0); // reset
-      dots.each(function (d, i) {
-        const delay = (d.minutes / maxTime) * animationLength;
-        d3.select(this)
-          .transition()
-          .duration(500)
-          .delay(delay)
-          .style('opacity', 1);
-      });
+      
 
       animationInterval = setInterval(() => {
         if (currentTime >= maxTime) {
