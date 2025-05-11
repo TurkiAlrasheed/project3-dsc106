@@ -182,18 +182,19 @@ function renderLinePlot(data, fidgets) {
     .attr('stroke', 'steelblue')
     .attr('stroke-width', 2);
 
-  const dots = svg.selectAll('.fidget-dot')
-    .data(fidgets)
-    .enter()
-    .append('circle')
-    .attr('class', 'fidget-dot')
-    .attr('cx', d => xScale(d.minutes))
-    .attr('cy', d => yScale(d.value))
-    .attr('r', 4)
-    .attr('fill', 'red')
-    .attr('stroke', 'white')
-    .attr('stroke-width', 1.5)
-    .style('opacity', 0);
+    const dots = svg.selectAll('.fidget-dot')
+  .data(fidgets)
+  .enter()
+  .append('circle')
+  .attr('class', 'fidget-dot')
+  .attr('cx', d => xScale(d.minutes))
+  .attr('cy', d => yScale(d.value))
+  .attr('r', 3)  // 🔹 smaller radius
+  .attr('fill', 'rgba(255, 99, 132, 0.8)')       // soft red
+  .attr('stroke', 'rgba(255, 255, 255, 0.9)')     // white stroke
+  .attr('stroke-width', 1.2)
+  .style('filter', 'drop-shadow(0 1px 2px rgba(0,0,0,0.25))')  // subtle glow
+  .style('opacity', 0);
 
 
   // === Tooltip setup ===
@@ -291,19 +292,36 @@ function renderLinePlot(data, fidgets) {
     playButton.text(isPlaying ? '⏸' : '▶');
 
     if (isPlaying) {
-      const animationLength = 3000;
-      
-
-      animationInterval = setInterval(() => {
-        if (currentTime >= maxTime) {
-          clearInterval(animationInterval);
+      const selectedExam = d3.select('#exam-select').property('value');
+      const baseDuration = 5000;
+      const animationLength = selectedExam === "Final" ? baseDuration * 2 : baseDuration;
+      dots.style('opacity', 0); // reset
+    
+      // Animate dots with delays
+      dots.each(function (d, i) {
+        const delay = (d.minutes / maxTime) * animationLength;
+        d3.select(this)
+          .transition()
+          .duration(500)
+          .delay(delay)
+          .style('opacity', 1);
+      });
+    
+      let start = null;
+      animationInterval = d3.timer(function (elapsed) {
+        if (!start) start = elapsed;
+    
+        let t = (elapsed - start) / animationLength;
+        if (t > 1) {
+          t = 1;
+          animationInterval.stop();  // stop d3.timer
           isPlaying = false;
           playButton.text('▶');
-          return;
         }
-        currentTime += 0.8; 
+    
+        const currentTime = t * maxTime;
         updateVisiblePath(currentTime);
-      }, 100);
+      });
     } else {
       clearInterval(animationInterval);
     }
