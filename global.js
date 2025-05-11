@@ -201,7 +201,7 @@ function renderLinePlot(data, fidgets) {
   .attr('cx', d => xScale(d.minutes))
   .attr('cy', d => yScale(d.value))
   .attr('r', 3)  // 🔹 smaller radius
-  .attr('fill', 'rgba(255, 99, 132, 0.8)')       // soft red
+  .attr('fill', '#dd6b20')       // soft red
   .attr('stroke', 'rgba(255, 255, 255, 0.9)')     // white stroke
   .attr('stroke-width', 1.2)
   .style('filter', 'drop-shadow(0 1px 2px rgba(0,0,0,0.25))')  // subtle glow
@@ -270,7 +270,7 @@ function renderLinePlot(data, fidgets) {
   const maxTime = Math.ceil(d3.max(data, d => d.minutes));
   slider.attr('max', maxTime);
 
-  function updateVisiblePath(currentTime) {
+  function updateVisiblePath(currentTime,fidgets) {
     timeDisplay.text(formatTimeLabel(currentTime));
     slider.property('value', currentTime);
   
@@ -282,6 +282,8 @@ function renderLinePlot(data, fidgets) {
     // Show fidgets that occurred up to current time
     dots
       .style('opacity', d => d.minutes <= currentTime ? .8 : 0);
+      const fidgetCount = fidgets.filter(d => d.minutes <= currentTime).length;    
+      d3.select('#fidget-count').text(`Fidgets: ${fidgetCount}`);
   }
 
   slider.on('input', function () {
@@ -332,7 +334,7 @@ function renderLinePlot(data, fidgets) {
         }
     
         const currentTime = t * maxTime;
-        updateVisiblePath(currentTime);
+        updateVisiblePath(currentTime,fidgets);
       });
     } else {
       if (animationInterval) animationInterval.stop();  // Stop timer
