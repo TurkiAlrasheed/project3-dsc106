@@ -288,29 +288,28 @@ function renderLinePlot(data, fidgets) {
 
   slider.on('input', function () {
     if (isPlaying) togglePlayback();
-    updateVisiblePath(+this.value, fidgets);
+    currentTime = +this.value;
+    updateVisiblePath(currentTime, fidgets);
   });
 
   playButton.on('click', togglePlayback);
-
+  let currentTime = 0;
   function togglePlayback() {
-    let currentTime = +slider.property('value');
-
+    const selectedExam = d3.select('#exam-select').property('value');
+    const baseDuration = 5000;
+    const animationLength = selectedExam === "Final" ? baseDuration * 2 : baseDuration;
+  
     if (currentTime >= maxTime && !isPlaying) {
       currentTime = 0;
-      updateVisiblePath(0,fidgets);
+      updateVisiblePath(currentTime, fidgets);
     }
-
+  
     isPlaying = !isPlaying;
     playButton.text(isPlaying ? '⏸' : '▶');
-
+  
     if (isPlaying) {
-      const selectedExam = d3.select('#exam-select').property('value');
-      const baseDuration = 5000;
-      const animationLength = selectedExam === "Final" ? baseDuration * 2 : baseDuration;
       dots.style('opacity', 0); // reset
-    
-      // Animate dots with delays
+  
       dots.each(function (d, i) {
         const delay = (d.minutes / maxTime) * animationLength;
         d3.select(this)
@@ -319,27 +318,30 @@ function renderLinePlot(data, fidgets) {
           .delay(delay)
           .style('opacity', .8);
       });
-    
-      let start = null;
+  
+      const resumeStartTime = performance.now();
+      const resumeFromTime = currentTime;
+  
       if (animationInterval) animationInterval.stop();
-      animationInterval = d3.timer(function (elapsed) {
-    if (start === null) start = elapsed;
-
-    
-        let t = (elapsed - start) / animationLength;
-        if (t > 1) {
-          t = 1;
-          animationInterval.stop();  // stop d3.timer
+      animationInterval = d3.timer(function () {
+        const elapsed = performance.now() - resumeStartTime;
+        let t = elapsed / animationLength;
+        currentTime = resumeFromTime + t * (maxTime - resumeFromTime);
+  
+        if (currentTime >= maxTime) {
+          currentTime = maxTime;
+          updateVisiblePath(currentTime, fidgets);
+          animationInterval.stop();
           isPlaying = false;
           playButton.text('▶');
+          return;
         }
-    
-        const currentTime = t * maxTime;
-        updateVisiblePath(currentTime,fidgets);
+  
+        updateVisiblePath(currentTime, fidgets);
       });
     } else {
-      if (animationInterval) animationInterval.stop();  // Stop timer
-      dots.interrupt();  // 🛑 Stop fidget dot animations
+      if (animationInterval) animationInterval.stop();
+      dots.interrupt();
     }
   }
 
