@@ -288,7 +288,7 @@ function renderLinePlot(data, fidgets) {
 
   slider.on('input', function () {
     if (isPlaying) togglePlayback();
-    updateVisiblePath(+this.value);
+    updateVisiblePath(+this.value, fidgets);
   });
 
   playButton.on('click', togglePlayback);
@@ -298,7 +298,7 @@ function renderLinePlot(data, fidgets) {
 
     if (currentTime >= maxTime && !isPlaying) {
       currentTime = 0;
-      updateVisiblePath(0);
+      updateVisiblePath(0,fidgets);
     }
 
     isPlaying = !isPlaying;
@@ -321,7 +321,8 @@ function renderLinePlot(data, fidgets) {
       });
     
       let start = null;
-    animationInterval = d3.timer(function (elapsed) {
+      if (animationInterval) animationInterval.stop();
+      animationInterval = d3.timer(function (elapsed) {
     if (start === null) start = elapsed;
 
     
@@ -343,7 +344,8 @@ function renderLinePlot(data, fidgets) {
   }
 
   // Draw initial state
-  updateVisiblePath(0);
+  updateVisiblePath(0, fidgets);
+d3.select('#fidget-count').text('Fidgets: 0');
 }
 
 loadACC().then(data => {
