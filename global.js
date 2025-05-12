@@ -36,10 +36,43 @@ async function loadACC() {
       exam,
       minutes,
       magnitude: +d.magnitude_smooth,
+      examStartTime: examStart
     };
   });
   return acc.filter(d => d !== null);
 }
+
+// Function to load the temperature data
+async function loadTemperatureData() {
+  const tempData = await d3.csv('cleaned_data/temp.csv', d => {
+    const rawTimestamp = new Date(d.timestamp_trunc);
+    const temperature = +d.value;  // Convert the temperature value to a number
+    const exam = d.Exam;
+
+    let examStart;
+    if (exam === "Final") {
+      examStart = new Date(rawTimestamp);
+      examStart.setHours(11, 0, 0, 0); // force start at 11:00 AM
+    } else {
+      examStart = examStartTimes[exam];
+    }
+
+    const timeElapsed = rawTimestamp - examStart;
+    const minutes = timeElapsed / 1000 / 60;
+
+    if (exam === "Final" && minutes < 0) return null;
+
+    return {
+      timestamp: rawTimestamp,
+      subject: d.Subject,
+      exam,
+      temperature,
+    };
+  });
+  
+  return tempData.filter(d => d !== null);  // Return the temperature data
+}
+
 
 async function loadFidgets() {
   const fidgets = await d3.csv('cleaned_data/fidgets.csv', d => {
@@ -91,12 +124,13 @@ function setupDropdowns(data) {
     .text(d => d);
 }
 
-function updateChart(data, fidgets) {
+function updateChart(data, fidgets, tempData) {
   const selectedExam = d3.select('#exam-select').property('value');
   const selectedSubject = d3.select('#subject-select').property('value');
 
   const filteredData = data.filter(d => d.exam === selectedExam && d.subject === selectedSubject);
   const filteredFidgets = fidgets.filter(d => d.exam === selectedExam && d.subject === selectedSubject);
+  const filteredTemp = tempData.filter(d => d.exam === selectedExam && d.subject === selectedSubject);
 
   d3.select('#chart').selectAll('*').remove();
   const maxMinutes = examDurations[selectedExam] || Infinity;
@@ -115,7 +149,7 @@ function updateChart(data, fidgets) {
   d3.select('#time-label').text('0:00');
   d3.select('#chart').selectAll('*').remove();
 
-  renderLinePlot(trimmedAcc, trimmedFidgets);
+  renderLinePlot(trimmedAcc, trimmedFidgets, filteredTemp, tempData)
 }
 
 function formatTimeLabel(minutes) {
@@ -126,7 +160,7 @@ function formatTimeLabel(minutes) {
   return `${h}:${m}:${s}`;
 }
 
-function renderLinePlot(data, fidgets) {
+function renderLinePlot(data, fidgets, tempData, allTempData) {
   const width = 800;
   const height = 400;
   const margin = { top: 10, right: 10, bottom: 50, left: 50 };
@@ -153,6 +187,12 @@ function renderLinePlot(data, fidgets) {
 
   const xAxis = d3.axisBottom(xScale);
   const yAxis = d3.axisLeft(yScale);
+
+  const tempExtent = d3.extent(allTempData, d => isFinite(d.temperature) ? d.temperature : null);
+  const tempColorScale = d3.scaleLinear()
+    .domain([tempExtent[0], 42])
+    .range(['#3182ce', '#e53e3e'])
+    .clamp(true);
 
   // add x-axis title
   svg.append("text")
@@ -284,6 +324,42 @@ function renderLinePlot(data, fidgets) {
       .style('opacity', d => d.minutes <= currentTime ? .8 : 0);
       const fidgetCount = fidgets.filter(d => d.minutes <= currentTime).length;    
       d3.select('#fidget-count').text(`Fidgets: ${fidgetCount}`);
+
+    const currentTimestamp = new Date(data[0].examStartTime.getTime() + currentTime * 60000);
+
+    let closestTemp = null;
+    let minDiff = Infinity;
+
+    for (const d of tempData) {
+      const diff = Math.abs(d.timestamp - currentTimestamp);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestTemp = d;
+      }
+    }
+
+    if (closestTemp) {
+      const color = tempColorScale(closestTemp.temperature);
+      d3.select('#hand-icon').style('color', color);
+
+      const [minTemp, maxTemp] = tempColorScale.domain();
+      const clampedTemp = Math.max(minTemp, Math.min(maxTemp, closestTemp.temperature));
+      const tNorm = (clampedTemp - minTemp) / (maxTemp - minTemp); // normalize 0 to 1
+      const barWidth = 200;
+
+      d3.select('#temp-indicator')
+        .attr('x1', tNorm * barWidth)
+        .attr('x2', tNorm * barWidth);
+
+
+
+      const tempC = closestTemp.temperature;
+      const tempF = (tempC * 9/5) + 32;
+
+      d3.select('#temp-display')
+        .text(`Temperature: ${tempF.toFixed(1)} °F | ${tempC.toFixed(1)} °C`);
+
+    }
   }
 
   slider.on('input', function () {
@@ -351,13 +427,12 @@ animationInterval = d3.timer(function () {
 d3.select('#fidget-count').text('Fidgets: 0');
 }
 
-loadACC().then(data => {
-  loadFidgets().then(fidgets => {
-    setupDropdowns(data);
-    updateChart(data, fidgets);
+Promise.all([loadACC(), loadFidgets(), loadTemperatureData()])
+  .then(([accData, fidgets, tempData]) => {
+    setupDropdowns(accData);
+    updateChart(accData, fidgets, tempData);
 
-    // Attach change handlers
-    d3.select('#exam-select').on('change', () => updateChart(data, fidgets));
-    d3.select('#subject-select').on('change', () => updateChart(data, fidgets));
+    d3.select('#exam-select').on('change', () => updateChart(accData, fidgets, tempData));
+    d3.select('#subject-select').on('change', () => updateChart(accData, fidgets, tempData));
   });
-});
+

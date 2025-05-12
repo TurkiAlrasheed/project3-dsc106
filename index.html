@@ -31,9 +31,13 @@
       font-weight: 700;
     }
     .nav-links {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
       display: flex;
       gap: 1.5rem;
     }
+
     .nav-links a {
       text-decoration: none;
       color: #1a202c;
@@ -183,10 +187,8 @@
     </div>
     <nav class="nav-links">
       <a href="#">Home</a>
-      <a href="#">About</a>
-      <a href="#">Contact</a>
+      <a href="writeup/index.html">Writeup</a>
     </nav>
-    <button class="nav-button">Analysis Page</button>
   </header>
 
   <!-- MAIN CONTENT -->
@@ -230,7 +232,45 @@
       <!-- RIGHT COLUMN: Analysis Text -->
       <aside class="analysis">
         <h2>Data Analysis</h2>
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+        <br>
+        <div id="temp-display" style="text-align: center; margin-top: -1rem; font-size: 1rem; color: #4a5568;">
+          Temperature: -- °C
+        </div>
+        <span id="hand-icon" style="
+          margin-left: 1.5rem;
+          font-size: 13rem;
+          font-family: 'Segoe UI Symbol', 'Noto Emoji', sans-serif;
+          display: block;
+          line-height: 0.8;
+          margin-top: 0.5rem;
+          margin-bottom: 2.5rem;
+        ">✋</span>
+
+        
+        <svg id="temp-gradient-bar" width="260" height="35" style="display: block; margin: 0.5rem auto;">
+  <defs>
+    <linearGradient id="temp-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3182ce" />
+      <stop offset="100%" stop-color="#e53e3e" />
+    </linearGradient>
+  </defs>
+
+  <!-- Gradient bar, centered with margin on both sides -->
+  <rect x="30" y="10" width="200" height="16" rx="8" ry="8"
+        fill="url(#temp-gradient)" stroke="#ccc" stroke-width="1" />
+
+  <!-- Temperature indicator line -->
+  <line id="temp-indicator" x1="30" y1="7" x2="30" y2="28"
+        stroke="black" stroke-width="2" />
+
+  <!-- Labels outside the bar -->
+  <text x="13" y="23" font-size="12" fill="#4a5568" text-anchor="middle" font-weight="bold">Cold</text>
+  <text x="247" y="23" font-size="12" fill="#4a5568" text-anchor="middle" font-weight="bold">Hot</text>
+</svg>
+
+
+
+        
         <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
         <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
       </aside>
