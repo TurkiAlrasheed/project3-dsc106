@@ -15,6 +15,7 @@
       color: #1a202c;
       line-height: 1.6;
     }
+  
 
     /* 2) Header & nav */
     .site-header {
@@ -213,7 +214,10 @@
         </div>
 
         <!-- this is where your D3 code will inject the SVG -->
-        <div id="chart"></div>
+        <div id="chart">
+          <svg width="800" height="400"></svg>
+
+        </div>
 
         <div class="controls">
           <button id="play-button" class="play-button">▶</button>
@@ -224,8 +228,9 @@
             min="0"
             max="180"
             step="1"
+            value="0"
           />
-          <span id="time-label" class="time-label">0:00</span>
+          <span id="time-label" class="time-label">00:00:00</span>
         </div>
       </div>
 
@@ -234,7 +239,7 @@
         <h2>Data Analysis</h2>
         <br>
         <div id="temp-display" style="text-align: center; margin-top: -1rem; font-size: 1rem; color: #4a5568;">
-          Temperature: -- °C
+          Temperature: -- °F | -- °C
         </div>
         <span id="hand-icon" style="
         display: block;
@@ -285,7 +290,7 @@
         fill="url(#temp-gradient)" stroke="#ccc" stroke-width="1" />
 
   <!-- Temperature indicator line -->
-  <line id="temp-indicator" x1="30" y1="7" x2="30" y2="28"
+  <line id="temp-indicator" x1="94.82" y1="7" x2="94.82" y2="28"
         stroke="black" stroke-width="2" />
 
   <!-- Labels outside the bar -->

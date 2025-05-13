@@ -190,7 +190,7 @@ function renderLinePlot(data, fidgets, tempData, allTempData) {
 
   const tempExtent = d3.extent(allTempData, d => isFinite(d.temperature) ? d.temperature : null);
   const tempColorScale = d3.scaleLinear()
-    .domain([tempExtent[0], 42])
+    .domain([26, 38])
     .range(['#3182ce', '#e53e3e'])
     .clamp(true);
 
@@ -307,6 +307,7 @@ function renderLinePlot(data, fidgets, tempData, allTempData) {
   const slider = d3.select('#time-slider');
   const timeDisplay = d3.select('#time-label');
   const playButton = d3.select('#play-button');
+
   const maxTime = Math.ceil(d3.max(data, d => d.minutes));
   slider.attr('max', maxTime);
 
@@ -344,13 +345,16 @@ function renderLinePlot(data, fidgets, tempData, allTempData) {
       d3.select('#hand-icon').style('visibility', 'visible');
 
       const [minTemp, maxTemp] = tempColorScale.domain();
-      const clampedTemp = Math.max(minTemp, Math.min(maxTemp, closestTemp.temperature));
-      const tNorm = (clampedTemp - minTemp) / (maxTemp - minTemp); // normalize 0 to 1
+      const barX = 30; // starting x of gradient bar (from your <rect x="30">)
       const barWidth = 200;
 
+      const clampedTemp = Math.max(minTemp, Math.min(maxTemp, closestTemp.temperature));
+      const tNorm = (clampedTemp - minTemp) / (maxTemp - minTemp); // normalize between 0 and 1
+      const pixelX = barX + tNorm * barWidth;
+
       d3.select('#temp-indicator')
-        .attr('x1', tNorm * barWidth)
-        .attr('x2', tNorm * barWidth);
+        .attr('x1', pixelX)
+        .attr('x2', pixelX);
 
 
 
@@ -432,6 +436,7 @@ Promise.all([loadACC(), loadFidgets(), loadTemperatureData()])
   .then(([accData, fidgets, tempData]) => {
     setupDropdowns(accData);
     updateChart(accData, fidgets, tempData);
+    
 
     d3.select('#exam-select').on('change', () => updateChart(accData, fidgets, tempData));
     d3.select('#subject-select').on('change', () => updateChart(accData, fidgets, tempData));
