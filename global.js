@@ -341,6 +341,7 @@ function renderLinePlot(data, fidgets, tempData, allTempData) {
     if (closestTemp) {
       const color = tempColorScale(closestTemp.temperature);
       d3.selectAll('#hand-icon path').attr('fill', color);
+      d3.select('#hand-icon').style('visibility', 'visible');
 
       const [minTemp, maxTemp] = tempColorScale.domain();
       const clampedTemp = Math.max(minTemp, Math.min(maxTemp, closestTemp.temperature));
