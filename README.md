@@ -5,7 +5,7 @@ This project presents an interactive D3.js-based visualization of student moveme
 
 Built using **D3.js** and deployed via **GitHub Pages**.
 
-🔗 **[Website](https://turkialrasheed.github.io/student-movement-interactive-vis/)**
+🔗 **[Visualization](https://turkialrasheed.github.io/student-movement-temp-interactive-vis/)**
 
 ---
 
