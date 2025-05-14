@@ -176,8 +176,8 @@ function renderLinePlot(data, fidgets, tempData, allTempData) {
   };
 
   const svg = d3.select('#chart').append('svg')
-    .attr('width', width)
-    .attr('height', height);
+  .attr('width', width)
+  .attr('height', height);
 
   const xScale = d3.scaleLinear()
     .domain(d3.extent(data, d => d.minutes))
@@ -467,7 +467,7 @@ d3.select('#hand-icon')
       color: #4a5568;
       margin-bottom: 0.25rem;
     ">
-      Mean Temperature: ${meanTempF.toFixed(1)} °F | ${meanTempC.toFixed(1)} °C
+    <strong>Mean:</strong> ${meanTempF.toFixed(1)} °F | ${meanTempC.toFixed(1)} °C
     </div>
   `);
 
@@ -482,7 +482,7 @@ d3.select('#hand-icon')
       margin-top: -1rem;
       margin-bottom: 0.5rem;
     ">
-      Temperature: -- °F | -- °C
+    <strong>Temperature:</strong> -- °F | -- °C
     </div>
   `);
 }
