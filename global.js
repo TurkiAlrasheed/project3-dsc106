@@ -28,6 +28,7 @@ async function loadACC() {
 
     const timeElapsed = rawTimestamp - examStart;
     const minutes = timeElapsed / 1000 / 60;
+    if (exam === "Final" && (minutes < 0 || minutes > 180)) return null;
 
     if (exam === "Final" && minutes < 0) return null;
 
@@ -67,6 +68,7 @@ async function loadTemperatureData() {
       subject: d.Subject,
       exam,
       temperature,
+      minutes
     };
   });
   
@@ -443,7 +445,17 @@ d3.select('#mean-temp').remove();
 d3.select('#temp-display').remove();
 
 // Mean temperature ABOVE hand (matching style)
-const meanTempC = d3.mean(tempData, d => d.temperature);
+const selectedExam = d3.select('#exam-select').property('value');
+const examDuration = examDurations[selectedExam] || 999;
+
+const meanTempC = d3.mean(
+  tempData.filter(d =>
+    d.exam === selectedExam &&
+    d.minutes >= 0 &&
+    d.minutes <= examDuration
+  ),
+  d => d.temperature
+);
 const meanTempF = meanTempC * 9 / 5 + 32;
 
 d3.select('#hand-icon')
