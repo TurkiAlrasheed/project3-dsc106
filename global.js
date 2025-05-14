@@ -426,10 +426,53 @@ animationInterval = d3.timer(function () {
       dots.interrupt();
     }
   }
+  
 
   // Draw initial state
   updateVisiblePath(0, fidgets);
-d3.select('#fidget-count').text('Fidgets: 0');
+  // === Mean Temperature Display Under Hand ===
+d3.select('#mean-temp').remove();  // <-- remove old one if present
+
+// Remove old entries first
+d3.select('#mean-temp').remove();
+d3.select('#temp-display').remove();
+
+// Mean temperature ABOVE hand
+// Remove old entries first
+d3.select('#mean-temp').remove();
+d3.select('#temp-display').remove();
+
+// Mean temperature ABOVE hand (matching style)
+const meanTempC = d3.mean(tempData, d => d.temperature);
+const meanTempF = meanTempC * 9 / 5 + 32;
+
+d3.select('#hand-icon')
+  .node()
+  .insertAdjacentHTML('beforebegin', `
+    <div id="mean-temp" style="
+      text-align: center;
+      font-size: 1rem;
+      color: #4a5568;
+      margin-bottom: 0.25rem;
+    ">
+      Mean Temperature: ${meanTempF.toFixed(1)} °F | ${meanTempC.toFixed(1)} °C
+    </div>
+  `);
+
+// Dynamic temperature BELOW hand (closer + styled)
+d3.select('#hand-icon')
+  .node()
+  .insertAdjacentHTML('afterend', `
+    <div id="temp-display" style="
+      text-align: center;
+      font-size: 1rem;
+      color: #4a5568;
+      margin-top: -1rem;
+      margin-bottom: 0.5rem;
+    ">
+      Temperature: -- °F | -- °C
+    </div>
+  `);
 }
 
 Promise.all([loadACC(), loadFidgets(), loadTemperatureData()])
