@@ -313,7 +313,7 @@ const focusLine = svg.append('line')
       tooltip
         .style('left', `${x + 10}px`)
         .style('top', `${yScale(d.magnitude) - 5}px`)
-        .html(`Time: ${d.minutes.toFixed(1)} min<br>Magnitude: ${d.magnitude.toFixed(2)}`)
+        .html(`Time: ${d.minutes.toFixed(1)} min<br>Intensity: ${d.magnitude.toFixed(2)}`)
         .style('display', 'block');
     })
     .on('mouseout', function () {
