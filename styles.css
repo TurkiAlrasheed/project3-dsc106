@@ -66,7 +66,7 @@
     }
     main h1 {
       font-size: 2rem;
-      margin-bottom: 1.5rem;
+      margin-bottom: 0.5rem;
       font-weight: 700;
     }
 
@@ -85,6 +85,7 @@
     .chart-area {
       position: relative;
     }
+    
     .selectors {
       display: flex;
       gap: 1rem;
@@ -97,6 +98,7 @@
       align-items: center;
       gap: 0.5rem;
     }
+    
     .selectors select {
       padding: 0.25rem 0.5rem;
       border: 1px solid #cbd5e0;
@@ -111,6 +113,7 @@
       align-items: center;
       margin-top: 1.5rem;
     }
+    
     .play-button {
       width: 3rem;
       height: 3rem;
@@ -125,6 +128,7 @@
       cursor: pointer;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
+    
     .range-slider {
       -webkit-appearance: none;
       flex: 1;
@@ -145,6 +149,7 @@
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       margin-top: -0.5rem;
     }
+
     .range-slider::-moz-range-thumb {
       width: 1.5rem;
       height: 1.5rem;
@@ -154,6 +159,7 @@
       cursor: pointer;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
+
     .time-label {
       min-width: 3rem;
       text-align: right;
@@ -170,3 +176,13 @@
     .analysis p {
       margin-bottom: 1rem;
     }
+
+    .card-footer {
+  grid-column: 1 / -1; /* Span full width of the grid */
+  margin-top: 1.5rem;
+}
+
+.card-footer p {
+  font-size: 1.25rem;
+  line-height: 1.75;
+}
