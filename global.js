@@ -364,7 +364,7 @@ function renderLinePlot(data, fidgets, tempData, allTempData) {
       const tempF = (tempC * 9/5) + 32;
 
       d3.select('#temp-display')
-        .text(`Temperature: ${tempF.toFixed(1)} °F | ${tempC.toFixed(1)} °C`);
+  .html(`<strong>Temperature:</strong> ${tempF.toFixed(1)} °F | ${tempC.toFixed(1)} °C`);
 
     }
   }
