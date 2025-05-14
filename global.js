@@ -271,7 +271,14 @@ function renderLinePlot(data, fidgets, tempData, allTempData) {
     .attr('stroke', 'white')
     .attr('stroke-width', 1.5)
     .style('display', 'none');
-
+const focusLine = svg.append('line')
+  .attr('class', 'focus-line')
+  .attr('stroke', '#aaa')
+  .attr('stroke-width', 1)
+  .attr('stroke-dasharray', '4 4')  // dashed style
+  .attr('y1', margin.top)
+  .attr('y2', height - margin.bottom)
+  .style('display', 'none');
   // === Mouse overlay ===
   svg.append('rect')
     .attr('width', width)
@@ -281,22 +288,30 @@ function renderLinePlot(data, fidgets, tempData, allTempData) {
     .on('mousemove', function (event) {
       const [mx] = d3.pointer(event);
       const minute = xScale.invert(mx);
-
-      // Find the closest data point
+    
       const bisect = d3.bisector(d => d.minutes).left;
       const index = bisect(data, minute);
       const d0 = data[Math.max(0, index - 1)];
       const d1 = data[Math.min(index, data.length - 1)];
       const d = (minute - d0.minutes) < (d1.minutes - minute) ? d0 : d1;
-
-      // Update circle
+    
+      const x = xScale(d.minutes);
+    
+      // Update focus circle
       focus
-          .attr('cx', xScale(d.minutes))
-          .attr('cy', yScale(d.magnitude))
-          .style('display', null);
-
+        .attr('cx', x)
+        .attr('cy', yScale(d.magnitude))
+        .style('display', null);
+    
+      // Update vertical line
+      focusLine
+        .attr('x1', x)
+        .attr('x2', x)
+        .style('display', null);
+    
       // Update tooltip
-      tooltip.style('left', `${xScale(d.minutes) + 10}px`)
+      tooltip
+        .style('left', `${x + 10}px`)
         .style('top', `${yScale(d.magnitude) - 5}px`)
         .html(`Time: ${d.minutes.toFixed(1)} min<br>Magnitude: ${d.magnitude.toFixed(2)}`)
         .style('display', 'block');
@@ -304,6 +319,7 @@ function renderLinePlot(data, fidgets, tempData, allTempData) {
     .on('mouseout', function () {
       tooltip.style('display', 'none');
       focus.style('display', 'none');
+      focusLine.style('display', 'none');
     });
       
   const slider = d3.select('#time-slider');
